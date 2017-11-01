@@ -32,8 +32,9 @@ class Parser {
 
 	public function product($category) {
 		$data = $this->curl_get_contents($category);
-		preg_match_all('/<a\s[^>]*href=\"([^\"]*)\"[^>]*>(.*)<\/a>/siU', $data, $data);
-		return $data[0];
+		//preg_match_all('/<a\s[^>]*class=\"\model-name clearer-block"\s[^>]*href=\"([^\"]*)\"[^>]*>(.*)<\/a>/siU', $data, $data);
+		preg_match_all('#<a\s[^>]*href=\"([^\"]*)\"[^>]*>(.*)<\/a>#siU', $data, $data);
+		return $data[1];
 	}
 
 }
@@ -42,10 +43,16 @@ $Parser = new Parser;
 
 $categoryData = $Parser->category('http://price.ua/catc6t1.html');
 
+array_splice($categoryData, -2);
+
 foreach ($categoryData as $category) {
 	echo '<pre>';
-	echo $category;
+	//echo $category;
 	echo '</pre>';
-	//$productData = $Parser->product($category);
-	//var_dump($productData);
+
+
 }
+
+	$productData = $Parser->product('http://price.ua/catc52t1.html');
+	
+	var_dump($productData);
