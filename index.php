@@ -4,13 +4,10 @@
  * @category   Application\Parser
  * @copyright  2017
  */
-
-set_time_limit(100);
+set_time_limit(30);
 error_reporting(E_ALL);
 ini_set('display_errors', true);
-
 require_once('db.php');
-
 class Parser {
 	public function curl_get_contents($url) {
 		$ch = curl_init($url);
@@ -55,30 +52,31 @@ class Parser {
 		$price = substr($price, 0, 11);
 		return $price;
 	}
-
 	public function get_brand($url) {
 		$data = $this->curl_get_contents($url);
 		preg_match('~<span itemprop=\"brand\">(.*?)</span>~m', $data, $brand);
 		return $brand[1];
 	}
-
 	public function get_model($url) {
 		$data = $this->curl_get_contents($url);
 		preg_match('~<span itemprop=\"model\">(.*?)</span>~m', $data, $model);
 		return $model[1];
 	}
-
 	public function get_description($url) {
 		$data = $this->curl_get_contents($url);
 		preg_match('~<a\s+rel=\"nofollow\" onclick=\"(.*?)\" href=\"([^\"]*)\"[^>]*~m', $data, $descr);
 		$url_description = substr($descr[1], 11, -1);
-
 		$dat = $this->curl_get_contents($url_description);
-		preg_match('~<div\sclass=\"model-description-section\"><font\ssize=\"+1\"><font\scolor=\"#000000\">(.*)<\/font><\/font><\/div>~m', $dat, $description);
-		return $description[0];		
+		preg_match('/<div class="model-description-section">(.+?)<\/div>/s', $dat, $description);
+		
+		if(empty($description)) {
+			preg_match('/<table cellspacing="0" cellpadding="0" class="description">(.*)<\/table>/s', $dat, $description);
+			return $description[1];
+		} else {
+			return $description[0];
+		}
 	}
 }
-
 $Parser = new Parser;
 /*
 $categoryData = $Parser->category('http://price.ua/catc6t1.html');
@@ -96,7 +94,7 @@ foreach ($categoryData as $category) {
 		// ---------- Category
 		echo $Parser->get_category($product).'<br>';
 		// ----------- Price
-		echo $Parser->get_price($product).'<br>';
+		echo $Parser->get_price($product).'грн. <br>';
 		// ----------- Brand
 		echo $Parser->get_brand($product).' ';
 		// ----------- Model
@@ -104,8 +102,12 @@ foreach ($categoryData as $category) {
 		// ----------- Description
 		var_dump($Parser->get_description($product));
 		echo '<hr>';
+		
+		$cur_date = date('Y-m-d h:i:s', time());
 
-		//$sql = "INSERT INTO table ('filename') VALUES ('valuesname')";
-		//DB::Execute($sql);
+		$sql = "INSERT INTO wp_posts (`post_author`, `post_date`, `post_date_gmt`, `post_content`, `post_title`, `post_excerpt`, `post_status`, `comment_status`, `ping_status`, `post_password`, `post_name`, `to_ping`, `pinged`, `post_modified`, `post_modified_gmt`, `post_content_filtered`, `post_parent`, `guid`, `menu_order`, `post_type`, `post_mime_type`, `comment_count`) VALUES ('1', '{$cur_date}', '{$cur_date}', '".$Parser->get_description($product)."', '".$Parser->get_brand($product)." ".$Parser->get_model($product)."', '".$Parser->get_brand($product)." ".$Parser->get_model($product)."', 'publish', 'open', 'closed','', '".str_replace(' ','-',$Parser->get_brand($product))."-".str_replace(' ','-',$Parser->get_model($product))."','','', '{$cur_date}', '{$cur_date}', '', '0', 'http://localhost/0-testwordpress/?post_type=product#038;p=".rand(10,100000)."', '0', 'product', '', '0')";
+		
+
+		DB::Execute($sql);
 	}
 //}
