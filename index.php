@@ -100,14 +100,24 @@ foreach ($categoryData as $category) {
 		// ----------- Model
 		echo $Parser->get_model($product).'<br>';
 		// ----------- Description
-		var_dump($Parser->get_description($product));
+		//echo $Parser->get_description($product);
 		echo '<hr>';
 		
 		$cur_date = date('Y-m-d h:i:s', time());
-
-		$sql = "INSERT INTO wp_posts (`post_author`, `post_date`, `post_date_gmt`, `post_content`, `post_title`, `post_excerpt`, `post_status`, `comment_status`, `ping_status`, `post_password`, `post_name`, `to_ping`, `pinged`, `post_modified`, `post_modified_gmt`, `post_content_filtered`, `post_parent`, `guid`, `menu_order`, `post_type`, `post_mime_type`, `comment_count`) VALUES ('1', '{$cur_date}', '{$cur_date}', '".$Parser->get_description($product)."', '".$Parser->get_brand($product)." ".$Parser->get_model($product)."', '".$Parser->get_brand($product)." ".$Parser->get_model($product)."', 'publish', 'open', 'closed','', '".str_replace(' ','-',$Parser->get_brand($product))."-".str_replace(' ','-',$Parser->get_model($product))."','','', '{$cur_date}', '{$cur_date}', '', '0', 'http://localhost/0-testwordpress/?post_type=product#038;p=".rand(10,100000)."', '0', 'product', '', '0')";
 		
+		// insert product data
+		$sql = "INSERT INTO wp_posts (`post_author`, `post_date`, `post_date_gmt`, `post_content`, `post_title`, `post_excerpt`, `post_status`, `comment_status`, `ping_status`, `post_password`, `post_name`, `to_ping`, `pinged`, `post_modified`, `post_modified_gmt`, `post_content_filtered`, `post_parent`, `guid`, `menu_order`, `post_type`, `post_mime_type`, `comment_count`) VALUES ('1', '{$cur_date}', '{$cur_date}', '".$Parser->get_description($product)."', '".$Parser->get_brand($product)." ".$Parser->get_model($product)."', '".$Parser->get_brand($product)." ".$Parser->get_model($product)."', 'publish', 'open', 'closed','', '".str_replace(' ','-',$Parser->get_brand($product))."-".str_replace(' ','-',$Parser->get_model($product))."','','', '{$cur_date}', '{$cur_date}', '', '0', 'http://localhost/0-testwordpress/?post_type=product#038;p=".rand(10,100000)."', '0', 'post', '', '0')";
+		
+		DB::Execute($sql);
+		
+		/* ------------------------------------------------------------------------------------------------- */
 
+		$ID = DB::InsertID();
+		$image = pathinfo($Parser->get_picture($product));
+
+		// insert product image
+		$sql = "INSERT INTO wp_posts (`post_author`, `post_date`, `post_date_gmt`, `post_content`, `post_title`, `post_excerpt`, `post_status`, `comment_status`, `ping_status`, `post_password`, `post_name`, `to_ping`, `pinged`, `post_modified`, `post_modified_gmt`, `post_content_filtered`, `post_parent`, `guid`, `menu_order`, `post_type`, `post_mime_type`, `comment_count`) VALUES ('1', '{$cur_date}', '{$cur_date}', '', '".$image['filename']."', '', 'inherit', 'open', 'closed', '', '".$image['filename']."', '', '', '{$cur_date}', '{$cur_date}', '', '{$ID}', '".$Parser->get_picture($product)."', '0', 'attachment', 'image/jpeg', '0')";
+		
 		DB::Execute($sql);
 	}
 //}

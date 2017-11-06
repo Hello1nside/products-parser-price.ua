@@ -5,9 +5,10 @@ error_reporting(E_ALL);
 class DB {
 	public static $sql;
 	public static function Connect() {
-		self::$sql = new mysqli('localhost', 'root', '','0-testwordpress');
+		self::$sql = new mysqli('localhost', 'root', '','big-news');
 		self::$sql->set_charset('utf8');
 	}
+
 	public static function RS($query) {
 		$rs = self::$sql->query($query);
 		self::check_error($query);
@@ -16,13 +17,20 @@ class DB {
 		} 
 		return null;
 	}
+
 	public static function Execute($query) {
 		self::$sql->query($query);
 		self::check_error($query);
 	}
+
+	public static function InsertID() {
+		return self::$sql->insert_id;
+	}
+
 	public static function DQ($value) {
 		return self::$sql->real_escape_string($value);
 	}
+
 	private static function check_error($query) {
 		if(self::$sql->errno > 0) {
 			trigger_error("MySQL error: " . self::$sql->error . "\r\n" . $query . "\r\n");
