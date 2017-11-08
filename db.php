@@ -5,7 +5,7 @@ error_reporting(E_ALL);
 class DB {
 	public static $sql;
 	public static function Connect() {
-		self::$sql = new mysqli('localhost', 'root', '','big-news');
+		self::$sql = new mysqli('localhost', 'root', '','0-testwordpress');
 		self::$sql->set_charset('utf8');
 	}
 
@@ -37,4 +37,5 @@ class DB {
 		}
 	}
 }
+
 DB::Connect();

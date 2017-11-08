@@ -4,7 +4,7 @@
  * @category   Application\Parser
  * @copyright  2017
  */
-set_time_limit(30);
+set_time_limit(50);
 error_reporting(E_ALL);
 ini_set('display_errors', true);
 require_once('db.php');
@@ -78,46 +78,52 @@ class Parser {
 	}
 }
 $Parser = new Parser;
-/*
+
 $categoryData = $Parser->category('http://price.ua/catc6t1.html');
 array_splice($categoryData, -2);
 foreach ($categoryData as $category) {
-*/
+
 	$category = 'http://price.ua/catc52t1.html';
 	$Products = $Parser->products($category);
 	foreach ($Products as $product) {
-		//echo $product;
-		//$ProductContent = $Parser->products_content($product);
-		//var_dump($ProductContent);
-		// ----------- Picture
-		echo $Parser->get_picture($product).'<br>';
-		// ---------- Category
-		echo $Parser->get_category($product).'<br>';
-		// ----------- Price
-		echo $Parser->get_price($product).'грн. <br>';
-		// ----------- Brand
-		echo $Parser->get_brand($product).' ';
-		// ----------- Model
-		echo $Parser->get_model($product).'<br>';
-		// ----------- Description
-		//echo $Parser->get_description($product);
-		echo '<hr>';
+
+		// ----------- Picture | echo $Parser->get_picture($product).'<br>';
+		// ---------- Category | echo $Parser->get_category($product).'<br>';
+		// ----------- Price | echo $Parser->get_price($product).'грн. <br>';
+		// ----------- Brand | echo $Parser->get_brand($product).' ';
+		// ----------- Model | echo $Parser->get_model($product).'<br>';
+		// ----------- Description | echo $Parser->get_description($product);
 		
 		$cur_date = date('Y-m-d h:i:s', time());
 		
 		// insert product data
-		$sql = "INSERT INTO wp_posts (`post_author`, `post_date`, `post_date_gmt`, `post_content`, `post_title`, `post_excerpt`, `post_status`, `comment_status`, `ping_status`, `post_password`, `post_name`, `to_ping`, `pinged`, `post_modified`, `post_modified_gmt`, `post_content_filtered`, `post_parent`, `guid`, `menu_order`, `post_type`, `post_mime_type`, `comment_count`) VALUES ('1', '{$cur_date}', '{$cur_date}', '".$Parser->get_description($product)."', '".$Parser->get_brand($product)." ".$Parser->get_model($product)."', '".$Parser->get_brand($product)." ".$Parser->get_model($product)."', 'publish', 'open', 'closed','', '".str_replace(' ','-',$Parser->get_brand($product))."-".str_replace(' ','-',$Parser->get_model($product))."','','', '{$cur_date}', '{$cur_date}', '', '0', 'http://localhost/0-testwordpress/?post_type=product#038;p=".rand(10,100000)."', '0', 'post', '', '0')";
+		$sql = "INSERT INTO wp_posts (`post_author`, `post_date`, `post_date_gmt`, `post_content`, `post_title`, `post_excerpt`, `post_status`, `comment_status`, `ping_status`, `post_password`, `post_name`, `to_ping`, `pinged`, `post_modified`, `post_modified_gmt`, `post_content_filtered`, `post_parent`, `guid`, `menu_order`, `post_type`, `post_mime_type`, `comment_count`) VALUES ('1', '{$cur_date}', '{$cur_date}', '<div id=product-description>".$Parser->get_description($product)."</div>', '".$Parser->get_brand($product)." ".$Parser->get_model($product)."', '".$Parser->get_brand($product)." ".$Parser->get_model($product)."', 'publish', 'open', 'closed','', '".str_replace(' ','-',$Parser->get_brand($product))."-".str_replace(' ','-',$Parser->get_model($product))."','','', '{$cur_date}', '{$cur_date}', '', '0', 'http://localhost/0-testwordpress/?post_type=product#038;p=".rand(10,100000)."', '0', 'product', '', '0')";
 		
 		DB::Execute($sql);
 		
 		/* ------------------------------------------------------------------------------------------------- */
-
 		$ID = DB::InsertID();
 		$image = pathinfo($Parser->get_picture($product));
-
 		// insert product image
 		$sql = "INSERT INTO wp_posts (`post_author`, `post_date`, `post_date_gmt`, `post_content`, `post_title`, `post_excerpt`, `post_status`, `comment_status`, `ping_status`, `post_password`, `post_name`, `to_ping`, `pinged`, `post_modified`, `post_modified_gmt`, `post_content_filtered`, `post_parent`, `guid`, `menu_order`, `post_type`, `post_mime_type`, `comment_count`) VALUES ('1', '{$cur_date}', '{$cur_date}', '', '".$image['filename']."', '', 'inherit', 'open', 'closed', '', '".$image['filename']."', '', '', '{$cur_date}', '{$cur_date}', '', '{$ID}', '".$Parser->get_picture($product)."', '0', 'attachment', 'image/jpeg', '0')";
 		
 		DB::Execute($sql);
+
+		// insert product price
+		$sql = "INSERT INTO wp_postmeta (`post_id`, `meta_key`, `meta_value`) VALUES ('".$ID."', '_price', '".$Parser->get_price($product)."')";
+		DB::Execute($sql);
+		$sql = "INSERT INTO wp_postmeta (`post_id`, `meta_key`, `meta_value`) VALUES ('".$ID."', '_regular_price', '".$Parser->get_price($product)."')";
+		DB::Execute($sql);
+		$sql = "INSERT INTO wp_postmeta (`post_id`, `meta_key`, `meta_value`) VALUES ('".$ID."', '_stock_status', 'instock')";
+		DB::Execute($sql);
+		$sql = "INSERT INTO wp_postmeta (`post_id`, `meta_key`, `meta_value`) VALUES ('".$ID."', '_wp_attached_file', '".$Parser->get_picture($product)."')";
+		DB::Execute($sql);
+
+		// Insert product category
+		//$sql_category = "INSERT INTO wp_terms (`name`, `slug`, `term_group`) VALUES ('".$Parser->get_category($product)."', '', '0')";
+		//DB::Execute($sql_category);
+
+		echo $log = 'Product: '.$product.' ------> <span style="color:green;font-size:22px;font-weight:700;"> Was successfully added to database!</span>';	
+		echo '<hr>';
 	}
-//}
+}
