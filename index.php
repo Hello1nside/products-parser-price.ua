@@ -4,7 +4,7 @@
  * @category   Application\Parser
  * @copyright  2017
  */
-set_time_limit(40);
+set_time_limit(900);
 error_reporting(E_ALL);
 ini_set('display_errors', true);
 require_once('db.php');
@@ -92,6 +92,7 @@ class Parser {
 		return $path;
 	}	
 }
+
 $Parser = new Parser;
 $categoryData = $Parser->category('http://price.ua/catc6t1.html');
 array_splice($categoryData, -2);
@@ -99,71 +100,60 @@ foreach ($categoryData as $category) {
 	$category = 'http://price.ua/catc52t1.html';
 	$Products = $Parser->products($category);
 	foreach ($Products as $product) {
+		echo 'Start parse ----> '.$product;
+	
 		// ----------- Picture | echo $Parser->get_picture($product).'<br>';
 		// ---------- Category | echo $Parser->get_category($product).'<br>';
 		// ----------- Price | echo $Parser->get_price($product).'грн. <br>';
 		// ----------- Brand | echo $Parser->get_brand($product).' ';
 		// ----------- Model | echo $Parser->get_model($product).'<br>';
 		// ----------- Description | echo $Parser->get_description($product);
-		
+	
+		// array symbols for str_replace
+		$repl = array(',', '/', ' ', '--');
+
 		$picture_url = $Parser->get_picture($product);
 		$picture_url = $Parser->download_picture($picture_url);
 		$picture_url = basename($picture_url);
 		$cur_date = date('Y-m-d h:i:s', time());
 		
-		// insert product data
+		// ----------------------------------------------------------------------
+		// INSERT PRODUCT DATA
 		$sql = "INSERT INTO wp_posts (`post_author`, `post_date`, `post_date_gmt`, `post_content`, `post_title`, `post_excerpt`, `post_status`, `comment_status`, `ping_status`, `post_password`, `post_name`, `to_ping`, `pinged`, `post_modified`, `post_modified_gmt`, `post_content_filtered`, `post_parent`, `guid`, `menu_order`, `post_type`, `post_mime_type`, `comment_count`) VALUES ('1', '{$cur_date}', '{$cur_date}', '<div id=product-description>".DB::DQ($Parser->get_description($product))."</table></div>', '".$Parser->get_brand($product)." ".$Parser->get_model($product)."', '".$Parser->get_brand($product)." ".$Parser->get_model($product)."', 'publish', 'open', 'closed','', '".str_replace(' ','-',$Parser->get_brand($product))."-".str_replace(' ','-',$Parser->get_model($product))."','','', '{$cur_date}', '{$cur_date}', '', '0', 'http://localhost/middle/?post_type=product#038;p=".rand(10,100000)."', '0', 'product', '', '0')";
 		
 		DB::Execute($sql);
 		$ID = DB::InsertID();
 		
 		// ---------------------------------------------------------------------
+		// INSERT PRODUCT IMAGE
 		$image = pathinfo($Parser->get_picture($product));
-		// insert product image
 		$sql = "INSERT INTO wp_posts (`post_author`, `post_date`, `post_date_gmt`, `post_content`, `post_title`, `post_excerpt`, `post_status`, `comment_status`, `ping_status`, `post_password`, `post_name`, `to_ping`, `pinged`, `post_modified`, `post_modified_gmt`, `post_content_filtered`, `post_parent`, `guid`, `menu_order`, `post_type`, `post_mime_type`, `comment_count`) VALUES ('1', '{$cur_date}', '{$cur_date}', '', '".$image['filename']."', '', 'inherit', 'open', 'closed', '', '".$image['filename']."', '', '', '{$cur_date}', '{$cur_date}', '', '{$ID}', 'http://localhost/middle/wp-content/uploads/".$picture_url."', '0', 'attachment', 'image/jpeg', '0')";
 		
 		DB::Execute($sql);
 		$ID_picture = DB::InsertID();
 
 		// ---------------------------------------------------------------------
-		// insert category product
-
-		$product_category = $Parser->get_category($product);
-		/*
-		$sql_terms = DB::RS("SELECT term_id FROM wp_terms WHERE `name` = '{$product_category}'");
+		// INSERT BRAND PRODUCT
+		$brand_slug = str_replace($repl,'-',$Parser->get_brand($product));
+		$brand_slug = urlencode($brand_slug);
+		DB::Execute("INSERT INTO wp_terms (`name`,`slug`,`term_group`) VALUES ('{$Parser->get_brand($product)}', '{$brand_slug}', '0')");
+		$brand_term_id = DB::InsertID();
+		DB::Execute("INSERT INTO wp_term_taxonomy (`term_id`, `taxonomy`, `description`, `parent`, `count`) VALUES ('{$brand_term_id}', 'product_brand', '', '0', '0')");
+		$term_taxonomy_id = DB::InsertID();
+		DB::Execute("INSERT INTO wp_term_relationships (`object_id`, `term_taxonomy_id`, `term_order`) VALUES ('{$ID}', '{$term_taxonomy_id}', '0')");
 		
-		$obj = fetch_object($result, 'term_id');
-		var_dump($obj);
-
-		if($sql_terms->num_rows === NULL) {
-			echo 'category doesn\'t exist, I will create category!';
-			$sql = "INSERT INTO wp_terms (`name`, `slug`, `term_group`) VALUES ('{$product_category}', '".str_replace(' ', '-', $product_category)."', '0')";
-			DB::Execute($sql);
-			$id_category = DB::InsertID();
-			
-			$sql = "INSERT INTO wp_term_relationships (`object_id`, `term_taxonomy_id`, `term_order`) VALUES ('{$ID}', '{$id_category}', '0')";
-			DB::Execute($sql);
-			
-			$sql = "INSERT INTO wp_term_taxonomy (`term_id`, `taxonomy`, `description`, `parent`, `count`) VALUES ('{$id_category}', 'product_cat', '', '0', '0')";
-			DB::Execute($sql);
-
-		} 
-		*/
-		/*
-		else {
-			echo 'this category already exists in database! I WILL insert it in wp_term_relationships';
-			
-			while ($obj = $sql_terms->fetch_object()) {
-				$sql = "INSERT INTO wp_term_relationships (`object_id`, `term_taxonomy_id`, `term_order`) VALUES ('{$ID}', '{$obj->term_id}', '0')";
-				DB::Execute($sql);
-			}
-		} */
-		// *******************************************************************
-		// INSERT BRAND
-		//$sql_brand = DB::RS("SELECT wp_term_taxonomy\.term_taxonomy_id FROM wp_term_taxonomy INNER JOIN wp_terms ON wp_term_taxonomy WHERE ");
+		// ---------------------------------------------------------------------
+		// INSERT CATEGORY PRODUCT
+		$category_slug = str_replace($repl,'-',$Parser->get_category($product));
+		$category_slug = urlencode($category_slug);
+		DB::Execute("INSERT INTO wp_terms (`name`,`slug`,`term_group`) VALUES ('{$Parser->get_category($product)}', '{$category_slug}', '0')");
+		$brand_term_id = DB::InsertID();
+		DB::Execute("INSERT INTO wp_term_taxonomy (`term_id`, `taxonomy`, `description`, `parent`, `count`) VALUES ('{$brand_term_id}', 'product_cat', '', '0', '0')");
+		$term_taxonomy_id = DB::InsertID();
+		DB::Execute("INSERT INTO wp_term_relationships (`object_id`, `term_taxonomy_id`, `term_order`) VALUES ('{$ID}', '{$term_taxonomy_id}', '0')");
 
 		// --------------------------------------------------------------------
-		// insert product price
+		// INSERT PRODUCT PRICE
 		$sql = "INSERT INTO wp_postmeta (`post_id`, `meta_key`, `meta_value`) VALUES ('".$ID."', '_regular_price', '".$Parser->get_price($product)."')";
 		DB::Execute($sql);
 		$sql = "INSERT INTO wp_postmeta (`post_id`, `meta_key`, `meta_value`) VALUES ('".$ID."', '_price', '".$Parser->get_price($product)."')";
@@ -174,11 +164,10 @@ foreach ($categoryData as $category) {
 		DB::Execute($sql);
 		$sql = "INSERT INTO wp_postmeta (`post_id`, `meta_key`, `meta_value`) VALUES ('".$ID."', '_thumbnail_id', '".$ID_picture."')";
 		DB::Execute($sql);
-		// Insert product category
-		//$sql_category = "INSERT INTO wp_terms (`name`, `slug`, `term_group`) VALUES ('".$Parser->get_category($product)."', '', '0')";
-		//DB::Execute($sql_category);
-		echo $log = '<br>Product: '.$product.' ------> <span style="color:green;font-size:16px;font-weight:700;"> Was successfully added to database!</span>';	
-		
+
+		// ---------------------------------------------------------------------
+		// LOGS FOR CHECK STATUS PRODUCTS
+		echo $log = '<br>Product: '.$product.' ------> <span style="color:green;font-size:16px;font-weight:700;"> Was successfully added to database!</span>';
 		echo '<hr>';
 	}
 }

@@ -37,4 +37,5 @@ class DB {
 		}
 	}
 }
+
 DB::Connect();
